@@ -121,4 +121,6 @@ These includes:
 * resfams_db - A mapping file that gives more accurate prediction of ESBLs
 * plasmids/* - Reference sequences for INC and MOB types. 
 
+# Naclist's modification
 
+I additionally have set up a database for 370,000+ plasmid sequences predicted from 310,000 high quality genomes from NCBI RefSeq database by PlasT (KleTy), and all these genomes have at least one clear information about isolation date, source and geography. This database can be accessed by URLs below or HTMLs here [isolation] for some simple visualization or statistic.
