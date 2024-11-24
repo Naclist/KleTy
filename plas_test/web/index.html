@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Plasmid Database</title>
+    <style>
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        table, th, td {
+            border: 1px solid black;
+        }
+        th, td {
+            padding: 8px;
+            text-align: left;
+        }
+        .italic {
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <h1>Plasmid Database</h1>
+    <label for="plasmidName">Enter Plasmid Name:</label>
+    <input type="text" id="plasmidName" placeholder="e.g., PT_343">
+    <button onclick="searchPlasmid()">Search</button>
+
+    <h2>Plasmid Information</h2>
+    <div id="plasmidTableContainer"></div>
+
+    <div>
+        <a href="SDI.html"><button>SDI Calculator</button></a>
+        <a href="Yearly.html"><button>Yearly Detection</button></a>
+        <a href="worldmap.html"><button>World Map</button></a>
+    </div>
+
+    <script>
+        function searchPlasmid() {
+            const plasmidName = document.getElementById('plasmidName').value;
+            if (!plasmidName) {
+                alert("Please enter a plasmid name.");
+                return;
+            }
+
+            fetch(`http://124.223.76.94:5000/api/plasmid/${encodeURIComponent(plasmidName)}`)
+                .then(response => response.json())
+                .then(data => {
+                    const tableContainer = document.getElementById('plasmidTableContainer');
+                    tableContainer.innerHTML = '';  // Clear previous results
+
+                    if (data.error) {
+                        tableContainer.innerHTML = `<p>Error: ${data.error}</p>`;
+                    } else {
+                        // Create a table element
+                        const table = document.createElement('table');
+                        const headerRow = document.createElement('tr');
+
+                        // Add table headers
+                        const headers = Object.keys(data[0]);  // Use the keys from the first record
+                        headers.forEach(header => {
+                            const th = document.createElement('th');
+                            th.textContent = header;
+                            headerRow.appendChild(th);
+                        });
+                        table.appendChild(headerRow);
+
+                        // Populate table rows
+                        data.forEach(record => {
+                            const row = document.createElement('tr');
+                            headers.forEach(header => {
+                                const cell = document.createElement('td');
+
+                                // Apply italic style to genus and species columns
+                                if (header === "genus" || header === "species") {
+                                    cell.classList.add("italic");
+                                }
+                                
+                                cell.textContent = record[header];
+                                row.appendChild(cell);
+                            });
+                            table.appendChild(row);
+                        });
+
+                        tableContainer.appendChild(table);
+                    }
+                })
+                .catch(error => {
+                    document.getElementById('plasmidTableContainer').innerHTML = `<p>Error: ${error.message}</p>`;
+                });
+        }
+    </script>
+</body>
+</html>

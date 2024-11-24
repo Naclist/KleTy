@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title>Plasmid Detection World Map</title>
+        <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+        <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+        <script src="https://d3js.org/d3.v5.min.js"></script>
+        <style>
+            /* 限定地图的宽度和高度 */
+            #map {
+                width: 1050px;     /* 设置宽度 */
+                height: 600px;    /* 设置高度 */
+                max-width: 100%;  /* 确保在屏幕较小时地图能适应 */
+            }
+        </style>
+    </head>
+
+<body>
+    <h1>Plasmid Detection World Map</h1>
+    <label for="plasmidName">Enter Plasmid Name:</label>
+    <input type="text" id="plasmidName" placeholder="e.g., PT_343">
+    <button onclick="getCountryDistribution()">Get Country Distribution</button>
+    <button onclick="toggleDisplayMode()">Toggle Display Mode</button>
+
+    <div id="map"></div>
+
+    <script>
+        const map = L.map('map', {
+            center: [20, 0],    // 设置初始视角中心
+            zoom: 2,            // 初始缩放级别
+            minZoom: 2          // 最小缩放级别，防止地图缩小到小于框的大小
+        });
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+            maxZoom: 18,
+            attribution: '&copy; <a href="https://carto.com/attributions">CARTO</a>'
+        }).addTo(map);
+
+        let displayMode = 'choropleth';  // 默认模式：区域上色
+        let choroplethLayer;
+        let bubbleLayer = L.layerGroup().addTo(map);  // 用于存储气泡标记
+
+        function getCountryDistribution() {
+            const plasmidName = document.getElementById('plasmidName').value;
+            if (!plasmidName) {
+                alert("Please enter a plasmid name.");
+                return;
+            }
+
+            fetch(`https://124.223.76.94:5000/api/plasmid/countries/${encodeURIComponent(plasmidName)}`)
+                .then(response => response.json())
+                .then(data => {
+                    console.log("API response:", data);  // 检查API返回值
+                    if (data.error) {
+                        alert(data.error);
+                    } else {
+                        if (displayMode === 'choropleth') {
+                            drawChoropleth(data);
+                        } else {
+                            drawBubbles(data);
+                        }
+                    }
+                })
+                .catch(error => alert("Error: " + error));
+        }
+
+        function toggleDisplayMode() {
+            displayMode = (displayMode === 'choropleth') ? 'bubbles' : 'choropleth';
+            getCountryDistribution();
+        }
+
+        function drawChoropleth(data) {
+            d3.json('https://raw.githubusercontent.com/johan/world.geo.json/master/countries.geo.json').then(function (geoData) {
+                const getColor = (d) => d > 500 ? '#800026' :
+                                        d > 100 ? '#BD0026' :
+                                        d > 50 ? '#E31A1C' :
+                                        d > 20 ? '#FC4E2A' :
+                                        d > 10 ? '#FD8D3C' :
+                                        d > 5 ? '#FEB24C' :
+                                        d > 1 ? '#FFEDA0' :
+                                                '#F0F0F0';
+
+                if (choroplethLayer) {
+                    map.removeLayer(choroplethLayer);
+                }
+                bubbleLayer.clearLayers();  // 清除气泡图层
+
+                choroplethLayer = L.geoJSON(geoData, {
+                    style: function(feature) {
+                        const countryName = feature.properties.name;
+                        const count = data[countryName] || 0;
+                        return {
+                            fillColor: getColor(count),
+                            weight: 1,
+                            opacity: 1,
+                            color: 'white',
+                            dashArray: '3',
+                            fillOpacity: count > 0 ? 0.7 : 0
+                        };
+                    },
+                    onEachFeature: function (feature, layer) {
+                        const countryName = feature.properties.name;
+                        const count = data[countryName] || 0;
+                        if (count > 0) {
+                            layer.bindPopup(`<strong>${countryName}</strong><br>Count: ${count}`);
+                        }
+                    }
+                }).addTo(map);
+            });
+        }
+
+        function drawBubbles(data) {
+            if (choroplethLayer) {
+                map.removeLayer(choroplethLayer);  // 清除区域上色图层
+            }
+            bubbleLayer.clearLayers();  // 清除旧气泡
+
+            const getBubbleColor = (d) => d > 500 ? '#800026' :
+                                          d > 100 ? '#BD0026' :
+                                          d > 50 ? '#E31A1C' :
+                                          d > 20 ? '#FC4E2A' :
+                                          d > 10 ? '#FD8D3C' :
+                                          d > 5 ? '#FEB24C' :
+                                          d > 1 ? '#FFEDA0' :
+                                                  '#F0F0F0';
+
+            const getBubbleRadius = (count) => Math.sqrt(count) * 2;  // 气泡大小比例
+
+            d3.json('https://raw.githubusercontent.com/johan/world.geo.json/master/countries.geo.json').then(function (geoData) {
+                L.geoJSON(geoData, {
+                    onEachFeature: function (feature, layer) {
+                        const countryName = feature.properties.name;
+                        const count = data[countryName] || 0;
+
+                        if (count > 0) {
+                            const centroid = layer.getBounds().getCenter();  // 获取国家的质心
+                            L.circleMarker(centroid, {
+                                color: getBubbleColor(count),
+                                radius: getBubbleRadius(count),
+                                fillOpacity: 0.5
+                            })
+                            .bindPopup(`<strong>${countryName}</strong><br>Count: ${count}`)
+                            .addTo(bubbleLayer);
+                        }
+                    }
+                });
+            });
+        }
+    </script>
+</body>
+</html>

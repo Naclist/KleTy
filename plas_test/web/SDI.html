@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Plasmid SDI Calculator</title>
+</head>
+<body>
+    <h1>Plasmid SDI Calculator</h1>
+    <label for="plasmidName">Enter Plasmid Name:</label>
+    <input type="text" id="plasmidName" placeholder="e.g., PT_343">
+    <label for="level">Enter Level:</label>
+    <input type="text" id="level" placeholder="e.g., genus or region">
+    <button onclick="calculateSDI()">Calculate SDI</button>
+
+    <h2>SDI Result</h2>
+    <p id="sdiResult">No result yet</p>
+
+    <div>
+        <a href="index.html"><button>Home</button></a>
+        <a href="Yearly.html"><button>Yearly Detection</button></a>
+        <a href="worldmap.html"><button>World Map</button></a>
+    </div>
+
+    <script>
+        function calculateSDI() {
+            const plasmidName = document.getElementById('plasmidName').value;
+            const level = document.getElementById('level').value;
+            
+            if (!plasmidName || !level) {
+                document.getElementById('sdiResult').textContent = 'Please enter both plasmid name and level.';
+                return;
+            }
+
+            fetch(`http://124.223.76.94:5000/api/calculate_sdi?plasmid=${encodeURIComponent(plasmidName)}&level=${encodeURIComponent(level)}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        document.getElementById('sdiResult').textContent = `Error: ${data.error}`;
+                    } else if (data.message) {
+                        document.getElementById('sdiResult').textContent = data.message;
+                    } else {
+                        document.getElementById('sdiResult').textContent = `${level.charAt(0).toUpperCase() + level.slice(1)} Simpson Diversity Index: ${data[`${level}_simpson_diversity_index`]}`;
+                    }
+                })
+                .catch(error => {
+                    document.getElementById('sdiResult').textContent = `Error: ${error.message}`;
+                });
+        }
+    </script>
+</body>
+</html>

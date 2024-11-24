@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title>Plasmid Yearly Distribution</title>
+        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    </head>
+    <body>
+        <h1>Plasmid Yearly Distribution</h1>
+        <label for="plasmidName">Enter Plasmid Name:</label>
+        <input type="text" id="plasmidName" placeholder="e.g., PT_343">
+        <button onclick="getYearlyDistribution()">Get Yearly Distribution</button>
+    
+        <h2>Yearly Detection Counts</h2>
+        <ul id="yearlyDistribution"></ul>
+
+        <canvas id="distributionChart" width="300px" height="200px"></canvas>
+    
+        <script>
+            function getYearlyDistribution() {
+                const plasmidName = document.getElementById('plasmidName').value;
+                
+                if (!plasmidName) {
+                    document.getElementById('yearlyDistribution').innerHTML = '<li>Please enter a plasmid name.</li>';
+                    return;
+                }
+    
+                fetch(`http://124.223.76.94:5000/api/plasmid_yearly_distribution?plasmid=${encodeURIComponent(plasmidName)}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        const yearlyDistribution = document.getElementById('yearlyDistribution');
+                        yearlyDistribution.innerHTML = '';
+    
+                        if (data.error) {
+                            yearlyDistribution.innerHTML = `<li>Error: ${data.error}</li>`;
+                        } else if (data.message) {
+                            yearlyDistribution.innerHTML = `<li>${data.message}</li>`;
+                        } else {
+                            const years = [];
+                            const counts = [];
+    
+                            data.forEach(item => {
+                                years.push(item.year);
+                                counts.push(item.count);
+                            });
+
+                            createOrUpdateChart(years, counts);
+                        }
+                    })
+                    .catch(error => {
+                        document.getElementById('yearlyDistribution').innerHTML = `<li>Error: ${error.message}</li>`;
+                    });
+            }
+    
+            let distributionChart;
+    
+            function createOrUpdateChart(labels, data) {
+                const ctx = document.getElementById('distributionChart').getContext('2d');
+
+                if (distributionChart) {
+                    distributionChart.data.labels = labels;
+                    distributionChart.data.datasets[0].data = data;
+                    distributionChart.update();
+                } else {
+
+                    distributionChart = new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels: labels,
+                            datasets: [{
+                                label: 'Anual Detection Rate',
+                                data: data,
+                                backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                                borderColor: 'rgba(75, 192, 192, 1)',
+                                borderWidth: 1
+                            }]
+                        },
+                        options: {
+                            responsive: false, 
+                            scales: {
+                                y: {
+                                    beginAtZero: true
+                                }
+                            }
+                        }
+                    });
+                }
+            }
+        </script>
+    </body>
+    

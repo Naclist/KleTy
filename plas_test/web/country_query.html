@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Plasmid Country Occurrence</title>
+</head>
+<body>
+    <h1>Plasmid Country Occurrence</h1>
+    <label for="plasmidName">Enter Plasmid Name:</label>
+    <input type="text" id="plasmidName" placeholder="e.g., PT_343">
+    <button onclick="fetchPlasmidCountryData()">Search</button>
+
+    <h2>Country Occurrence</h2>
+    <ul id="result"></ul>
+
+    <script>
+        function fetchPlasmidCountryData() {
+            const plasmidName = document.getElementById('plasmidName').value;
+            if (!plasmidName) {
+                document.getElementById('result').innerHTML = '<li>Please enter a plasmid name.</li>';
+                return;
+            }
+
+            fetch(`http://124.223.76.94:5000/api/plasmid/countries/${encodeURIComponent(plasmidName)}`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Plasmid not found or server error.');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    const resultContainer = document.getElementById('result');
+                    resultContainer.innerHTML = '';
+                    data.forEach(item => {
+                        const listItem = document.createElement('li');
+                        listItem.textContent = `${item.Region}: ${item.occurrence_count}`;
+                        resultContainer.appendChild(listItem);
+                    });
+                })
+                .catch(error => {
+                    document.getElementById('result').innerHTML = `<li>Error: ${error.message}</li>`;
+                });
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Plasmid SDI Radar Chart</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <h1>Plasmid SDI Comparison</h1>
+
+    <!-- 输入框确认质粒种类 -->
+    <label for="plasmidInput">Enter Plasmid Name:</label>
+    <input type="text" id="plasmidInput" placeholder="e.g., PT_343">
+    <button onclick="addPlasmid()">Confirm Plasmid</button>
+
+    <!-- 下拉框选择指标 -->
+    <label for="indicatorSelect">Select Indicators for Comparison (at least 3):</label>
+    <select id="indicatorSelect" multiple>
+        <option value="genus">SDI of Genus</option>
+        <option value="species">SDI of Species</option>
+        <option value="source_trackerLV1">SDI of Source Tracker LV1</option>
+        <option value="countries">SDI of Countries</option>
+        <option value="distribution_duration">Distribution Duration</option>
+    </select>
+    <button onclick="generateRadarChart()">Generate Radar Chart</button>
+
+    <h2>Selected Plasmids for Comparison</h2>
+    <ul id="selectedPlasmids"></ul>
+
+    <canvas id="radarChart" width="400" height="400"></canvas>
+
+    <script>
+        const selectedPlasmids = [];
+        const maxPlasmids = 5;
+        let radarChart;
+
+        function addPlasmid() {
+            const plasmidName = document.getElementById('plasmidInput').value.trim();
+            if (!plasmidName || selectedPlasmids.includes(plasmidName)) {
+                alert("Please enter a valid, non-repeated plasmid name.");
+                return;
+            }
+            if (selectedPlasmids.length >= maxPlasmids) {
+                alert("You can compare up to 5 plasmids.");
+                return;
+            }
+
+            selectedPlasmids.push(plasmidName);
+            updatePlasmidList();
+        }
+
+        function updatePlasmidList() {
+            const list = document.getElementById('selectedPlasmids');
+            list.innerHTML = selectedPlasmids.map(plasmid => `<li>${plasmid}</li>`).join('');
+        }
+
+        async function generateRadarChart() {
+            const selectedIndicators = Array.from(document.getElementById('indicatorSelect').selectedOptions).map(option => option.value);
+            if (selectedIndicators.length < 3) {
+                alert("Please select at least 3 indicators for comparison.");
+                return;
+            }
+
+            const allData = await Promise.all(
+                selectedPlasmids.map(async plasmid => {
+                    const plasmidData = await Promise.all(selectedIndicators.map(async indicator => {
+                        if (indicator === "distribution_duration") {
+                            const durationResponse = await fetch(`http://124.223.76.94:5000/api/plasmid_distribution_duration?plasmid=${encodeURIComponent(plasmid)}`);
+                            const durationResult = await durationResponse.json();
+                            return durationResult.duration || 1;  // 默认分布时长为1
+                        } else if (indicator === "countries") {
+                            const countryResponse = await fetch(`http://124.223.76.94:5000/api/calculate_sdi?plasmid=${encodeURIComponent(plasmid)}&level=Region`);
+                            const countryResult = await countryResponse.json();
+                            return countryResult.Region_simpson_diversity_index || 0;
+                        }
+                        const response = await fetch(`http://124.223.76.94:5000/api/calculate_sdi?plasmid=${encodeURIComponent(plasmid)}&level=${indicator}`);
+                        const result = await response.json();
+                        return result[`${indicator}_simpson_diversity_index`] || 0;
+                    }));
+                    return { label: plasmid, data: plasmidData };
+                })
+            );
+
+            const normalizedData = normalizeDistributionDuration(allData, selectedIndicators);
+            createOrUpdateRadarChart(normalizedData, selectedIndicators);
+        }
+
+        function normalizeDistributionDuration(data, indicators) {
+            if (!indicators.includes("distribution_duration")) return data;
+
+            const maxDuration = Math.max(...data.map(d => d.data[indicators.indexOf("distribution_duration")]));
+            return data.map(d => ({
+                label: d.label,
+                data: d.data.map((val, i) => indicators[i] === "distribution_duration" ? val / maxDuration : val)
+            }));
+        }
+
+        
+        function createOrUpdateRadarChart(data, labels) {
+            const ctx = document.getElementById('radarChart').getContext('2d');
+            const displayLabels = labels.map(label => label.replace(/_/g, ' ').replace(/sdi/i, "SDI"));
+
+            if (radarChart) {
+                radarChart.data.labels = displayLabels;
+                radarChart.data.datasets = data.map(d => ({
+                    label: d.label,
+                    data: d.data
+                }));
+                radarChart.update();
+            } else {
+                radarChart = new Chart(ctx, {
+                    type: 'radar',
+                    data: {
+                        labels: displayLabels,
+                        datasets: data.map(d => ({
+                            label: d.label,
+                            data: d.data,
+                            fill: true
+                        }))
+                    },
+                    options: {
+                        responsive: false,
+                        scales: {
+                            r: {
+                                beginAtZero: true,
+                                ticks: {
+                                    display: false  // 隐藏刻度值
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+        }
+
+    </script>
+</body>
+</html>

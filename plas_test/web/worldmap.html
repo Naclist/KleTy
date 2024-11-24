@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Plasmid Detection World Map</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <script src="https://d3js.org/d3.v5.min.js"></script>
+    <style>
+        /* 地图样式 */
+        #map {
+            width: 1050px;
+            height: 600px;
+            max-width: 100%;
+        }
+    </style>
+</head>
+<body>
+    <h1>Plasmid Detection World Map</h1>
+    <label for="plasmidName">Enter Plasmid Name:</label>
+    <input type="text" id="plasmidName" placeholder="e.g., PT_343">
+    <button onclick="getCountryDistribution()">Get Country Distribution</button>
+    <button onclick="toggleDisplayMode()">Toggle Display Mode</button>
+
+    <div id="map"></div>
+
+    <div>
+        <a href="index.html"><button>Home</button></a>
+        <a href="SDI.html"><button>SDI Calculator</button></a>
+        <a href="Yearly.html"><button>Yearly Detection</button></a>
+    </div>
+
+    <script>
+        const map = L.map('map', {
+            center: [20, 0],
+            zoom: 2,
+            minZoom: 2
+        });
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+            maxZoom: 18,
+            attribution: '&copy; <a href="https://carto.com/attributions">CARTO</a>'
+        }).addTo(map);
+
+        let displayMode = 'choropleth';
+        let choroplethLayer;
+        let bubbleLayer = L.layerGroup().addTo(map);
+
+        function getCountryDistribution() {
+            const plasmidName = document.getElementById('plasmidName').value;
+            if (!plasmidName) {
+                alert("Please enter a plasmid name.");
+                return;
+            }
+
+            fetch(`http://124.223.76.94:5000/api/plasmid/countries/${encodeURIComponent(plasmidName)}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        alert(data.error);
+                    } else {
+                        if (displayMode === 'choropleth') {
+                            drawChoropleth(data);
+                        } else {
+                            drawBubbles(data);
+                        }
+                    }
+                })
+                .catch(error => alert("Error: " + error));
+        }
+
+        function toggleDisplayMode() {
+            displayMode = (displayMode === 'choropleth') ? 'bubbles' : 'choropleth';
+            getCountryDistribution();
+        }
+
+        function drawChoropleth(data) {
+            d3.json('https://raw.githubusercontent.com/johan/world.geo.json/master/countries.geo.json').then(function (geoData) {
+                const getColor = (d) => d > 500 ? '#800026' :
+                                        d > 100 ? '#BD0026' :
+                                        d > 50 ? '#E31A1C' :
+                                        d > 20 ? '#FC4E2A' :
+                                        d > 10 ? '#FD8D3C' :
+                                        d > 5 ? '#FEB24C' :
+                                        d > 1 ? '#FFEDA0' :
+                                                '#F0F0F0';
+
+                if (choroplethLayer) {
+                    map.removeLayer(choroplethLayer);
+                }
+                bubbleLayer.clearLayers();
+
+                choroplethLayer = L.geoJSON(geoData, {
+                    style: function(feature) {
+                        const countryName = feature.properties.name;
+                        const count = data[countryName] || 0;
+                        return {
+                            fillColor: getColor(count),
+                            weight: 1,
+                            opacity: 1,
+                            color: 'white',
+                            dashArray: '3',
+                            fillOpacity: count > 0 ? 0.7 : 0
+                        };
+                    },
+                    onEachFeature: function (feature, layer) {
+                        const countryName = feature.properties.name;
+                        const count = data[countryName] || 0;
+                        if (count > 0) {
+                            layer.bindPopup(`<strong>${countryName}</strong><br>Count: ${count}`);
+                        }
+                    }
+                }).addTo(map);
+            });
+        }
+
+        function drawBubbles(data) {
+            if (choroplethLayer) {
+                map.removeLayer(choroplethLayer);
+            }
+            bubbleLayer.clearLayers();
+
+            const getBubbleColor = (d) => d > 500 ? '#800026' :
+                                          d > 100 ? '#BD0026' :
+                                          d > 50 ? '#E31A1C' :
+                                          d > 20 ? '#FC4E2A' :
+                                          d > 10 ? '#FD8D3C' :
+                                          d > 5 ? '#FEB24C' :
+                                          d > 1 ? '#FFEDA0' :
+                                                  '#F0F0F0';
+
+            const getBubbleRadius = (count) => Math.sqrt(count) * 2;
+
+            d3.json('https://raw.githubusercontent.com/johan/world.geo.json/master/countries.geo.json').then(function (geoData) {
+                L.geoJSON(geoData, {
+                    onEachFeature: function (feature, layer) {
+                        const countryName = feature.properties.name;
+                        const count = data[countryName] || 0;
+
+                        if (count > 0) {
+                            const centroid = layer.getBounds().getCenter();
+                            L.circleMarker(centroid, {
+                                color: getBubbleColor(count),
+                                radius: getBubbleRadius(count),
+                                fillOpacity: 0.5
+                            })
+                            .bindPopup(`<strong>${countryName}</strong><br>Count: ${count}`)
+                            .addTo(bubbleLayer);
+                        }
+                    }
+                });
+            });
+        }
+    </script>
+</body>
+</html>

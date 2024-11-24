@@ -1,0 +1,111 @@
+{
+    "nodes": [
+        {
+            "data": {
+                "id": "Acuticoccus",
+                "label": "Acuticoccus",
+                "type": "bacteria"
+            }
+        },
+        {
+            "data": {
+                "id": "PT_3527",
+                "label": "PT_3527",
+                "type": "plasmid"
+            }
+        },
+        {
+            "data": {
+                "id": "PT_23109",
+                "label": "PT_23109",
+                "type": "plasmid"
+            }
+        },
+        {
+            "data": {
+                "id": "PT_3053",
+                "label": "PT_3053",
+                "type": "plasmid"
+            }
+        },
+        {
+            "data": {
+                "id": "PT_16903",
+                "label": "PT_16903",
+                "type": "plasmid"
+            }
+        },
+        {
+            "data": {
+                "id": "PT_23282",
+                "label": "PT_23282",
+                "type": "plasmid"
+            }
+        },
+        {
+            "data": {
+                "id": "PT_8334",
+                "label": "PT_8334",
+                "type": "plasmid"
+            }
+        },
+        {
+            "data": {
+                "id": "PT_10315",
+                "label": "PT_10315",
+                "type": "plasmid"
+            }
+        }
+    ],
+    "edges": [
+        {
+            "data": {
+                "source": "PT_3527",
+                "target": "Acuticoccus",
+                "shared_count": 1
+            }
+        },
+        {
+            "data": {
+                "source": "PT_23109",
+                "target": "Acuticoccus",
+                "shared_count": 1
+            }
+        },
+        {
+            "data": {
+                "source": "PT_3053",
+                "target": "Acuticoccus",
+                "shared_count": 1
+            }
+        },
+        {
+            "data": {
+                "source": "PT_16903",
+                "target": "Acuticoccus",
+                "shared_count": 1
+            }
+        },
+        {
+            "data": {
+                "source": "PT_23282",
+                "target": "Acuticoccus",
+                "shared_count": 1
+            }
+        },
+        {
+            "data": {
+                "source": "PT_8334",
+                "target": "Acuticoccus",
+                "shared_count": 2
+            }
+        },
+        {
+            "data": {
+                "source": "PT_10315",
+                "target": "Acuticoccus",
+                "shared_count": 1
+            }
+        }
+    ]
+}

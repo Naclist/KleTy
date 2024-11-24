@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Bacteria-Plasmid Network with Local JSON</title>
+    <script src="https://unpkg.com/cytoscape@3.19.1/dist/cytoscape.min.js"></script>
+    <style>
+        body {
+            background-color: #000;
+            color: #fff;
+        }
+        #cy {
+            width: 100%;
+            height: 600px;
+            border: 1px solid #333;
+            background-color: #000;
+        }
+        #layoutControls {
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1 style="color: #fff;">Bacteria-Plasmid Network with Local JSON</h1>
+    <div id="cy"></div>
+
+    <!-- 布局切换按钮 -->
+    <div id="layoutControls">
+        <button onclick="changeLayout('cose')">Cose</button>
+        <button onclick="changeLayout('circle')">Circle</button>
+        <button onclick="changeLayout('grid')">Grid</button>
+        <button onclick="changeLayout('concentric')">Concentric</button>
+        <button onclick="changeLayout('breadthfirst')">Breadthfirst</button>
+        <button onclick="changeLayout('random')">Random</button>
+    </div>
+
+    <script>
+        // 初始化 Cytoscape 网络图
+        const cy = cytoscape({
+            container: document.getElementById('cy'),
+            style: [
+                {
+                    selector: 'node',
+                    style: {
+                        'background-color': '#1E90FF',
+                        'label': 'data(label)',
+                        'text-valign': 'center',
+                        'color': '#FFFFFF'
+                    }
+                },
+                {
+                    selector: 'edge',
+                    style: {
+                        'width': 'mapData(shared_count, 0, 2064, 1, 10)',
+                        'line-color': '#FF4500',
+                        'target-arrow-color': '#FF4500',
+                        'target-arrow-shape': 'triangle',
+                        'label': 'data(shared_count)',
+                        'font-size': 10,
+                        'color': '#FFFFFF',
+                        'text-background-opacity': 1
+                    }
+                }
+            ],
+            layout: {
+                name: 'cose', // 默认使用 cose 布局
+                animate: true
+            }
+        });
+
+        // 加载本地 JSON 数据
+        async function loadLocalJSON() {
+            try {
+                const response = await fetch('Acuticoccus_subnetwork.json');
+                const data = await response.json();
+                cy.add(data); // 将数据添加到 Cytoscape 实例中
+                cy.layout({ name: 'cose', animate: true }).run(); // 重新布局
+            } catch (error) {
+                console.error('Error loading JSON:', error);
+            }
+        }
+
+        // 切换布局
+        function changeLayout(layoutName) {
+            cy.layout({ name: layoutName, animate: true }).run();
+        }
+
+        // 初始化加载 JSON 数据
+        loadLocalJSON();
+    </script>
+</body>
+</html>
